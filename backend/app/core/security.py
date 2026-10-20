@@ -1,12 +1,16 @@
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import jwt
+import os
+from dotenv import load_dotenv 
 
-SECRET_KEY = "clave_secreta_provisional_auditor" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY", "super_secreta_por_defecto")
 
 def get_password_hash(password: str) -> str:
     """Toma una contraseña en texto plano y devuelve su hash seguro."""
@@ -28,4 +32,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     
-    return encoded_jwt
+    return encoded_jwt 
+    
+
+                      
