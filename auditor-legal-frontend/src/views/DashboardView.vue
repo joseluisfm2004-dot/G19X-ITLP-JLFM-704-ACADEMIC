@@ -86,7 +86,7 @@
 
             <div class="upload-controls">
               <div class="file-drop-zone">
-                <input type="file" @change="seleccionarArchivo" accept=".pdf,.docx,.doc" class="file-input" id="file-upload" />
+                <input type="file" @change="seleccionarArchivo" accept=".pdf,.docx" class="file-input" id="file-upload" />
                 <label for="file-upload" class="file-label">
                   <span class="file-name-display">{{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar archivo PDF o Word...' }}</span>
                   <span class="browse-badge">Explorar</span>

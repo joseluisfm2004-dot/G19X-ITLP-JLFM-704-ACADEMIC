@@ -33,7 +33,7 @@ async def upload_contrato(
     """Sube un documento de contrato (PDF/Word), lo almacena localmente y crea el registro en la BD."""
     
    
-    extensiones_permitidas = [".pdf", ".docx", ".doc"]
+    extensiones_permitidas = [".pdf", ".docx"]
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in extensiones_permitidas:
         raise HTTPException(
