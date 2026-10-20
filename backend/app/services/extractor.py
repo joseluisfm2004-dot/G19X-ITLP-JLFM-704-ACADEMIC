@@ -7,7 +7,7 @@ def extraer_texto_documento(ruta_archivo: str) -> str:
     """Lee un archivo PDF o Word desde el disco y extrae todo su texto en un string."""
     if not os.path.exists(ruta_archivo):
         raise HTTPException(
-            status_code=status.HTTP_44_NOT_FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="El archivo especificado no existe en el almacenamiento."
         )
 
