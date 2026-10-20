@@ -422,7 +422,7 @@ const cerrarSesion = () => {
 const cargarContratos = async () => {
   cargandoContratos.value = true;
   try {
-    const response = await axios.get('http://localhost:8000/api/v1/contratos/', {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/contratos/`, {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     contratos.value = response.data;
@@ -478,7 +478,7 @@ const subirContrato = async () => {
   formData.append('file', archivoSeleccionado.value);
 
   try {
-    await axios.post('http://localhost:8000/api/v1/contratos/upload', formData, {
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'Authorization': `Bearer ${authStore.token}`
@@ -505,17 +505,15 @@ const subirContrato = async () => {
 };
 
 
-// FUNCIÓN CORREGIDA CON EL MENSAJE DE ÉXITO
 const procesarContrato = async (id) => {
   try {
     contratoSeleccionadoId.value = id;
-    const response = await axios.post(`http://localhost:8000/api/v1/contratos/${id}/segmentar`, {}, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}/segmentar`, {}, {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     clausulas.value = response.data;
     await cargarContratos();
     
-    // Alerta de éxito agregada aquí
     alert("¡Éxito! El contrato ha sido segmentado en cláusulas y guardado en la base de datos.");
     
   } catch (err) {
@@ -530,7 +528,7 @@ const auditarContrato = async (id) => {
   resultadoAuditoria.value = null;
   
   try {
-    const response = await axios.post(`http://localhost:8000/api/v1/contratos/${id}/auditar`, {}, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}/auditar`, {}, {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     resultadoAuditoria.value = response.data;
@@ -550,7 +548,7 @@ const seleccionarContratoChat = async (contrato) => {
   chatMensajes.value = [];
   
   try {
-    const response = await axios.get(`http://localhost:8000/api/v1/contratos/${contrato.id}/chat/historial`, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${contrato.id}/chat/historial`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     });
     
@@ -584,8 +582,7 @@ const enviarMensajeChat = async () => {
   scrollChatAbajo();
 
   try {
-    const response = await axios.post(
-      `http://localhost:8000/api/v1/contratos/${contratoSeleccionadoId.value}/chat`, 
+   const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${contratoSeleccionadoId.value}/chat`, 
       { pregunta: pregunta }, 
       { headers: { 'Authorization': `Bearer ${authStore.token}` } }
     );
