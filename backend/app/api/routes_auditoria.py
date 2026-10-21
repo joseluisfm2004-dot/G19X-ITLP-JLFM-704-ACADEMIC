@@ -6,7 +6,6 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.models.usuario import Usuario
 from app.db.database import get_db, AsyncSessionLocal 
 import app.models.models as db_models
 from app.schemas.auditoria import AuditoriaResponse
@@ -120,30 +119,40 @@ async def ejecutar_auditoria_contrato(
         "estado": nueva_auditoria.estado
     }
 
-@router.get("/contrato/{contrato_id}", response_model=List[AuditoriaResponse])
-async def obtener_auditorias_contrato(
-    contrato_id: int,
+@router.get("/contrato/{contrato_id}")
+async def obtener_auditoria_contrato(
+    contrato_id: int, 
     db: AsyncSession = Depends(get_db),
     current_user: db_models.Usuario = Depends(get_current_user)
 ):
-    """Consulta los reportes de auditoría generados para un contrato."""
-    result_contrato = await db.execute(
-        select(db_models.Contrato.id).where(db_models.Contrato.id == contrato_id, db_models.Contrato.usuario_id == current_user.id)
+    result_aud = await db.execute(
+        select(db_models.Auditoria)
+        .where(db_models.Auditoria.contrato_id == contrato_id)
+        .order_by(db_models.Auditoria.id.desc())
     )
-    if not result_contrato.scalars().first():
-         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado a este contrato.")
+    auditoria = result_aud.scalars().first()
+    
+    if not auditoria:
+        raise HTTPException(status_code=404, detail="Auditoría no encontrada")
 
-    result = await db.execute(
-        select(db_models.Auditoria).options(selectinload(db_models.Auditoria.hallazgos)).where(db_models.Auditoria.contrato_id == contrato_id).order_by(db_models.Auditoria.id.desc())
+    result_hallazgos = await db.execute(
+        select(db_models.Hallazgo)
+        .where(db_models.Hallazgo.auditoria_id == auditoria.id)
     )
-    return result.scalars().all()
+    hallazgos = result_hallazgos.scalars().all()
+
+    return {
+        "id": auditoria.id,
+        "estado": auditoria.estado,
+        "puntaje_riesgo": auditoria.puntaje_riesgo,
+        "hallazgos": hallazgos
+    }
 
 @router.get("/contrato/{contrato_id}/exportar-pdf")
 async def exportar_reporte_pdf(
     contrato_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
+    current_user: db_models.Usuario = Depends(get_current_user)):
     """Genera y descarga un reporte en PDF de la auditoría del contrato seleccionado."""
     
     result_contrato = await db.execute(

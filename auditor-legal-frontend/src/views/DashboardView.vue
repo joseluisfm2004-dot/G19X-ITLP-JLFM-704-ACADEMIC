@@ -545,41 +545,55 @@ const auditarContrato = async (id) => {
   auditando.value = true;
   contratoSeleccionadoId.value = id;
   resultadoAuditoria.value = null;
-  
+
   try {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auditorias/${id}/analizar`, {}, { 
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    });
-    resultadoAuditoria.value = response.data;
-    await cargarContratos();
-  } catch (err) {
-    console.error("Error en auditoría:", err);
-    alert(err.response?.data?.detail || 'Error al ejecutar la auditoría inteligente.');
-  } finally {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auditorias/${id}/analizar`, {}, {
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
+      });
+
+    const intervalo = setInterval(async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/auditorias/contrato/${id}`, {
+          headers: { 'Authorization': `Bearer ${authStore.token}` }
+        });
+
+        if (res.data.estado && res.data.estado.toUpperCase().includes('COMPLETAD')) {
+    clearInterval(intervalo);
+    resultadoAuditoria.value = res.data; 
+    auditando.value = false;
+    cargarContratos();
+}
+        else if (res.data.estado === 'ERROR') {
+          clearInterval(intervalo);
+          alert('Hubo un error al auditar el contrato con la IA.');
+          auditando.value = false;
+        }
+        
+      } catch (err) {
+        if (err.response && err.response.status !== 404) {
+          console.error("Error al consultar el estado de la auditoría:", err);
+        }
+      }
+    }, 3000); 
+
+  } catch (error) {
+    console.error("Error al iniciar la auditoría:", error);
+    alert('No se pudo iniciar la auditoría.');
     auditando.value = false;
   }
 };
 
 
-const seleccionarContratoChat = async (contrato) => {
-  contratoVisualizado.value = contrato;
-  contratoSeleccionadoId.value = contrato.id;
-  chatMensajes.value = [];
-  
+const seleccionarContratoChat = async (id) => {
+  contratoSeleccionadoChat.value = id;
+  historialChat.value = []; 
   try {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${contrato.id}/chat/historial`, {
-      headers: { Authorization: `Bearer ${authStore.token}` }
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}/chat/historial`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
-    
-    if (response.data && response.data.mensajes) {
-      chatMensajes.value = response.data.mensajes.map(msg => ({
-        rol: msg.rol_emisor === 'user' ? 'user' : 'ia', 
-        texto: msg.contenido
-      }));
-      scrollChatAbajo();
-    }
+    historialChat.value = response.data;
   } catch (error) {
-    console.error("Error al cargar el historial del chat:", error);
+    console.error("Error al cargar historial del chat:", error);
   }
 };
 
