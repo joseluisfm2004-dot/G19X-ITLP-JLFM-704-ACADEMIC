@@ -37,7 +37,6 @@
       </div>
     </header>
 
-    <!-- Contenido principal -->
     <main class="main-content">
       <div class="welcome-banner">
         <h2>Panel de Control Ejecutivo</h2>
@@ -148,13 +147,21 @@
                     <span :class="['badge', c.estado]">{{ c.estado }}</span>
                   </td>
                   <td class="action-buttons-cell">
-                    <!-- BOTÓN CORREGIDO AQUÍ -->
                     <button type="button" @click.prevent="procesarContrato(c.id)" class="action-btn segment-btn" title="Segmentar cláusulas">
                       Segmentar
                     </button>
                     <button @click="auditarContrato(c.id)" :disabled="auditando" class="action-btn audit-btn" title="Ejecutar Auditoría con Azure OpenAI">
                       {{ auditando && contratoSeleccionadoId === c.id ? 'Auditando...' : 'Auditar con IA' }}
                     </button>
+                   <button 
+                      v-if="c.estado && (c.estado.toLowerCase().includes('auditado') || c.estado.toLowerCase().includes('completada'))"
+                      @click="descargarPdfSeguro(c.id)"
+                          class="action-btn download-btn-table"
+                       title="Descargar Reporte PDF"
+                           style="background-color: #2b6cb0; border: none; cursor: pointer;"
+                      >
+                     📄 PDF
+                      </button>
                   </td>
                 </tr>
               </tbody>
@@ -237,7 +244,6 @@
           </ul>
         </aside>
 
-        <!-- Área principal de Chat interactivo -->
         <main class="chat-main">
           <div v-if="!contratoSeleccionadoId" class="chat-placeholder">
             <svg xmlns="http://www.w3.org/2000/svg" class="chat-placeholder-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -353,11 +359,10 @@
           <div class="profile-info-grid">
             <div class="info-item">
               <span class="info-label">Nombre / Rol:</span>
-              <strong>{{ perfilUsuario ? perfilUsuario.username + ' / ' + perfilUsuario.rol : 'Cargando...' }}</strong>
+              <strong>{{ perfilUsuario ? perfilUsuario.nombre + ' / ' + perfilUsuario.rol : 'Cargando...' }}</strong>
             </div>
             <div class="info-item">
               <span class="info-label">Empresa:</span>
-              <!-- La empresa puede quedar fija porque es un sistema interno -->
               <strong>PluriOne S.A. de C.V.</strong>
             </div>
             <div class="info-item">
@@ -542,7 +547,7 @@ const auditarContrato = async (id) => {
   resultadoAuditoria.value = null;
   
   try {
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}/auditar`, {}, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auditorias/${id}/analizar`, {}, { 
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     resultadoAuditoria.value = response.data;
@@ -617,11 +622,11 @@ const enviarMensajeChat = async () => {
 
 const descargarPDF = () => {
   const opciones = {
-    margin:      0.5,
-    filename:    `Reporte_Auditoria_${contratoSeleccionadoId.value}.pdf`,
-    image:       { type: 'jpeg', quality: 0.98 },
+    margin:       0.5,
+    filename:     `Reporte_Auditoria_${contratoSeleccionadoId.value}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' }
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
   
   const btn = document.querySelector('.download-btn');
@@ -630,6 +635,25 @@ const descargarPDF = () => {
   html2pdf().set(opciones).from(reportePDF.value).save().then(() => {
     if(btn) btn.style.display = 'flex';
   });
+};
+
+
+const descargarPdfSeguro = async (contratoId) => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/auditorias/contrato/${contratoId}/exportar-pdf`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` },
+      responseType: 'blob',
+    });
+    
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `Reporte_Auditoria_Contrato_${contratoId}.pdf`;
+    link.click();
+  } catch (err) {
+    console.error("Error al descargar el PDF:", err);
+    alert('No se pudo descargar el reporte PDF.');
+  }
 };
 
 const obtenerClaseBadgeRiesgo = (nivel) => {
@@ -995,16 +1019,17 @@ onMounted(() => {
 .contracts-table tr:hover { background-color: #f8fafc; }
 .id-tag { font-family: monospace; font-weight: 600; color: #64748b; background-color: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; }
 .file-cell { color: #64748b; font-size: 0.9rem; }
-.action-buttons-cell { display: flex; gap: 0.5rem; justify-content: flex-end; }
-.action-btn { border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: white; font-weight: 600; transition: opacity 0.2s ease; }
+.action-buttons-cell { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+.action-btn { border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; color: white; font-weight: 600; transition: opacity 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .action-btn:hover { opacity: 0.9; }
 .segment-btn { background-color: #059669; }
 .audit-btn { background-color: #7c3aed; }
 .audit-btn:disabled { background-color: #c4b5fd; cursor: not-allowed; }
+.download-btn-table { background-color: #2b6cb0; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
 
 .badge { display: inline-block; padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 .badge.pendiente { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-.badge.procesando, .badge.auditado { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.badge.procesando, .badge.auditado, .badge.auditoria_completada { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
 .badge.riesgo-alto { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 .badge.riesgo-medio { background-color: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
 .badge.riesgo-bajo { background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
