@@ -10,7 +10,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY", "super_secreta_por_defecto")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("¡ALERTA DE SEGURIDAD! La variable SECRET_KEY no está configurada en el .env")
 
 def get_password_hash(password: str) -> str:
     """Toma una contraseña en texto plano y devuelve su hash seguro."""

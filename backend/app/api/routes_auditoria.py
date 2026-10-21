@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-
-from app.db.database import get_db, AsyncSessionLocal # <-- Importamos AsyncSessionLocal
+from app.models.usuario import Usuario
+from app.db.database import get_db, AsyncSessionLocal 
 import app.models.models as db_models
 from app.schemas.auditoria import AuditoriaResponse
 from app.core.deps import get_current_user
@@ -142,21 +142,30 @@ async def obtener_auditorias_contrato(
 async def exportar_reporte_pdf(
     contrato_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: db_models.Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user)
 ):
     """Genera y descarga un reporte en PDF de la auditoría del contrato seleccionado."""
-    result_auditoria = await db.execute(
-        select(db_models.Auditoria).where(db_models.Auditoria.contrato_id == contrato_id)
-    )
-    auditoria = result_auditoria.scalars().first()
-    if not auditoria:
-        raise HTTPException(status_code=404, detail="Auditoría no encontrada para este contrato")
-
+    
     result_contrato = await db.execute(
-        select(db_models.Contrato).where(db_models.Contrato.id == auditoria.contrato_id)
+        select(db_models.Contrato).where(
+            db_models.Contrato.id == contrato_id,
+            db_models.Contrato.usuario_id == current_user.id
+        )
     )
     contrato = result_contrato.scalars().first()
-    if not contrato: raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    if not contrato:
+        raise HTTPException(status_code=404, detail="Contrato no encontrado o acceso denegado")
+
+    result_auditoria = await db.execute(
+        select(db_models.Auditoria)
+        .where(db_models.Auditoria.contrato_id == contrato_id)
+        .order_by(db_models.Auditoria.id.desc())
+    )
+    auditoria = result_auditoria.scalars().first()
+    
+    if not auditoria:
+        raise HTTPException(status_code=404, detail="Auditoría no encontrada para este contrato")
 
     result_hallazgos = await db.execute(
         select(db_models.Hallazgo, db_models.Clausula)

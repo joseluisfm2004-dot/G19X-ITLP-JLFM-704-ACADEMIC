@@ -12,7 +12,17 @@ from app.core.deps import get_current_user
 router = APIRouter()
 
 @router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
-async def create_usuario(user: UsuarioCreate, db: AsyncSession = Depends(get_db)):
+async def create_usuario(
+    user: UsuarioCreate, 
+    db: AsyncSession = Depends(get_db),
+    current_user: db_models.Usuario = Depends(get_current_user)
+):
+    if current_user.rol != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo los administradores pueden crear cuentas."
+        )
+
     result = await db.execute(select(db_models.Usuario).where(db_models.Usuario.email == user.email))
     if result.scalars().first():
         raise HTTPException(
@@ -62,7 +72,11 @@ async def read_users_me(current_user: db_models.Usuario = Depends(get_current_us
     return current_user
 
 @router.get("/{usuario_id}", response_model=UsuarioResponse)
-async def get_usuario(usuario_id: int, db: AsyncSession = Depends(get_db)):
+async def get_usuario(
+    usuario_id: int, 
+    db: AsyncSession = Depends(get_db),
+    current_user: db_models.Usuario = Depends(get_current_user)
+):
     result = await db.execute(select(db_models.Usuario).where(db_models.Usuario.id == usuario_id))
     usuario = result.scalars().first()
 
