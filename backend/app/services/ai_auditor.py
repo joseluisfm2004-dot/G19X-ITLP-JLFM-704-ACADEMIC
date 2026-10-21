@@ -155,22 +155,35 @@ async def generar_resumen_ejecutivo(hallazgos_totales: List[Dict[str, Any]], pun
 
     return f"Auditoría completada. Nivel de riesgo general: {nivel} (Puntaje: {puntaje_riesgo:.1f}/100). Total de hallazgos registrados: {num_hallazgos}. {rec}" 
 
-async def consultar_contrato_rag(pregunta: str, contexto_clausulas: str) -> tuple[str, list[str]]:
+async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[str, list[str]]:
     """
-    Procesa consultas del usuario utilizando las cláusulas del contrato como contexto exclusivo.
+    Procesa consultas del usuario utilizando un motor RAG (Retrieval-Augmented Generation).
+    Filtra las top 3 cláusulas más relevantes para no saturar el contexto de la IA.
     """
     if not client:
         return "El servicio de Inteligencia Artificial no está configurado actualmente.", []
 
+    palabras_pregunta = set(pregunta.lower().replace("?", "").replace("¿", "").replace(",", "").split())
+    
+    for c in clausulas:
+        palabras_texto = set((c["titulo"] + " " + c["texto"]).lower().split())
+        interseccion = palabras_pregunta.intersection(palabras_texto)
+        c["score"] = len(interseccion)
+
+    clausulas_top = sorted(clausulas, key=lambda x: x["score"], reverse=True)[:3]
+
+    contexto_filtrado = "\n\n".join([f"[Cláusula {c['numero']} - {c['titulo']}]: {c['texto']}" for c in clausulas_top])
+    referencias = [f"Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
+
     prompt_sistema = (
         "Eres un asistente legal experto de PluriOne S.A. de C.V. "
         "Tu tarea es responder preguntas sobre el contrato proporcionado utilizando ÚNICAMENTE "
-        "el texto de las cláusulas adjuntas en el contexto. "
-        "Si la respuesta no se encuentra en el texto, indícalo claramente. "
-        "No inventes información y mantén un tono corporativo y profesional."
+        "el contexto de las cláusulas recuperadas. "
+        "REGLA OBLIGATORIA: Debes mencionar explícitamente en tu respuesta de qué cláusula obtuviste la información. "
+        "Si la respuesta no se encuentra en el contexto, indícalo claramente y no inventes datos."
     )
     
-    prompt_usuario = f"CONTEXTO DE LAS CLÁUSULAS:\n{contexto_clausulas}\n\nPREGUNTA DEL USUARIO: {pregunta}"
+    prompt_usuario = f"CONTEXTO RECUPERADO:\n{contexto_filtrado}\n\nPREGUNTA DEL USUARIO: {pregunta}"
 
     try:
         response = await client.chat.completions.create(
@@ -184,10 +197,7 @@ async def consultar_contrato_rag(pregunta: str, contexto_clausulas: str) -> tupl
         )
         
         respuesta_ia = response.choices[0].message.content.strip()
-        
-        clausulas_citadas = []
-        
-        return respuesta_ia, clausulas_citadas
+        return respuesta_ia, referencias
 
     except Exception as e:
         print(f"[AI Chat Warning] Error al procesar el chat RAG: {e}")

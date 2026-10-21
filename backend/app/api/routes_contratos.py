@@ -257,11 +257,11 @@ async def chat_con_contrato(
     db.add(mensaje_usuario)
     await db.commit()
 
-    contexto_texto = "\n\n".join([f"[Contrato ID: {c.contrato_id} | Cláusula {c.numero} - {c.titulo}]: {c.texto}" for c in clausulas])
+    clausulas_dicts = [{"numero": c.numero, "titulo": c.titulo, "texto": c.texto} for c in clausulas]
 
     respuesta_ia, referencias = await consultar_contrato_rag(
         pregunta=payload.pregunta,
-        contexto_clausulas=contexto_texto
+        clausulas=clausulas_dicts
     )
 
     mensaje_ia = db_models.MensajeChat(

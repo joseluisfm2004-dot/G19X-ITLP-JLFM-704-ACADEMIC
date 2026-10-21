@@ -426,6 +426,7 @@ const clausulas = ref([]);
 const auditando = ref(false);
 const resultadoAuditoria = ref(null);
 const reportePDF = ref(null);
+const contratoSeleccionadoChat = ref(null);
 
 const chatMensajes = ref([]);
 const mensajeActual = ref('');
@@ -584,14 +585,19 @@ const auditarContrato = async (id) => {
 };
 
 
-const seleccionarContratoChat = async (id) => {
-  contratoSeleccionadoChat.value = id;
-  historialChat.value = []; 
+const seleccionarContratoChat = async (item) => {
+  const id = item.id ? item.id : item;
+  
+  contratoSeleccionadoChat.value = item;
+  contratoSeleccionadoId.value = id; 
+  chatMensajes.value = [];
+  
   try {
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}/chat/historial`, {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
-    historialChat.value = response.data;
+    
+    chatMensajes.value = response.data.mensajes || [];
   } catch (error) {
     console.error("Error al cargar historial del chat:", error);
   }
