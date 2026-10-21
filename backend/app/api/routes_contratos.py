@@ -179,76 +179,6 @@ async def segmentar_y_guardar_clausulas(
     return result_clausulas.scalars().all()
 
 
-@router.post("/{contrato_id}/auditar")
-async def auditar_contrato(
-    contrato_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: db_models.Usuario = Depends(get_current_user)
-):
-    """Ejecuta el motor de auditoría inteligente (con IA o heurístico) sobre las cláusulas del contrato."""
-    
-    result = await db.execute(
-        select(db_models.Contrato).where(
-            db_models.Contrato.id == contrato_id,
-            db_models.Contrato.usuario_id == current_user.id
-        )
-    )
-    contrato = result.scalars().first()
-
-    if not contrato:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contrato no encontrado."
-        )
-
-    result_clausulas = await db.execute(
-        select(db_models.Clausula).where(db_models.Clausula.contrato_id == contrato.id)
-    )
-    clausulas = result_clausulas.scalars().all()
-
-    if not clausulas:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El contrato no tiene cláusulas segmentadas. Ejecuta la segmentación primero."
-        )
-
-    hallazgos_totales = []
-    peso_riesgo_total = 0
-
-    for c in clausulas:
-        resultado = await analizar_clausula_con_ia(c.numero, c.titulo, c.texto)
-        
-        for h in resultado.get("hallazgos", []):
-            nivel = h.get("nivel_riesgo", "Bajo")
-            if nivel == "Alto":
-                peso_riesgo_total += 30
-            elif nivel == "Medio":
-                peso_riesgo_total += 15
-            else:
-                peso_riesgo_total += 5
-
-            hallazgos_totales.append({
-                "clausula_id": c.id,
-                "numero_clausula": c.numero,
-                "titulo_clausula": c.titulo,
-                **h
-            })
-
-    puntaje_riesgo = min(float(peso_riesgo_total), 100.0)
-
-    resumen_global = await generar_resumen_ejecutivo(hallazgos_totales, puntaje_riesgo)
-
-    contrato.estado = "auditado"
-    await db.commit()
-
-    return {
-        "contrato_id": contrato.id,
-        "puntaje_riesgo": puntaje_riesgo,
-        "resumen_ejecutivo": resumen_global,
-        "total_hallazgos": len(hallazgos_totales),
-        "hallazgos": hallazgos_totales
-    }
-
 @router.get("/{contrato_id}/chat/historial", response_model=SesionChatResponse)
 async def obtener_historial_chat(
     contrato_id: int, 
@@ -279,7 +209,7 @@ async def chat_con_contrato(
     db: AsyncSession = Depends(get_db),
     current_user: db_models.Usuario = Depends(get_current_user)
 ):
-    """Endpoint de interacción conversacional RAG que guarda historial."""
+    """Endpoint de interacción conversacional RAG Multi-Documento (consulta global de la base de conocimiento)."""
     
     result = await db.execute(
         select(db_models.Contrato).where(
@@ -288,24 +218,21 @@ async def chat_con_contrato(
         )
     )
     contrato = result.scalars().first()
-
     if not contrato:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contrato no encontrado."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contrato no encontrado.")
 
     result_clausulas = await db.execute(
         select(db_models.Clausula)
-        .where(db_models.Clausula.contrato_id == contrato_id)
-        .order_by(db_models.Clausula.orden)
+        .join(db_models.Contrato, db_models.Clausula.contrato_id == db_models.Contrato.id)
+        .where(db_models.Contrato.usuario_id == current_user.id)
+        .order_by(db_models.Clausula.contrato_id, db_models.Clausula.orden)
     )
     clausulas = result_clausulas.scalars().all()
 
     if not clausulas:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El contrato debe ser segmentado antes de iniciar el asistente conversacional."
+            detail="No hay contratos segmentados disponibles en la base de conocimiento para consultar."
         )
 
     result_sesion = await db.execute(
@@ -330,13 +257,12 @@ async def chat_con_contrato(
     db.add(mensaje_usuario)
     await db.commit()
 
-    contexto_texto = "\n\n".join([f"[Cláusula {c.numero} - {c.titulo}]: {c.texto}" for c in clausulas])
+    contexto_texto = "\n\n".join([f"[Contrato ID: {c.contrato_id} | Cláusula {c.numero} - {c.titulo}]: {c.texto}" for c in clausulas])
 
     respuesta_ia, referencias = await consultar_contrato_rag(
         pregunta=payload.pregunta,
         contexto_clausulas=contexto_texto
     )
-
 
     mensaje_ia = db_models.MensajeChat(
         sesion_id=sesion.id,
