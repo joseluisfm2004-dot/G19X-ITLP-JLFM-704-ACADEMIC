@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
-
 from app.db.database import get_db
 import app.models.models as db_models
 from app.schemas.usuarios import UsuarioCreate, UsuarioResponse
@@ -27,7 +26,7 @@ async def create_usuario(user: UsuarioCreate, db: AsyncSession = Depends(get_db)
         nombre=user.nombre,
         email=user.email,
         password_hash=hashed_pwd,
-        rol=user.rol
+        rol="auditor"  
     )
 
     db.add(nuevo_usuario)
@@ -44,7 +43,12 @@ async def create_usuario(user: UsuarioCreate, db: AsyncSession = Depends(get_db)
     return nuevo_usuario
 
 @router.get("/", response_model=List[UsuarioResponse])
-async def list_usuarios(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+async def list_usuarios(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: AsyncSession = Depends(get_db),
+    current_user: db_models.Usuario = Depends(get_current_user) 
+):
     result = await db.execute(
         select(db_models.Usuario)
         .order_by(db_models.Usuario.id) 
