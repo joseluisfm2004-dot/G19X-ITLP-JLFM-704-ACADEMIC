@@ -353,19 +353,20 @@
           <div class="profile-info-grid">
             <div class="info-item">
               <span class="info-label">Nombre / Rol:</span>
-              <strong>Administrador / Auditor General</strong>
+              <strong>{{ perfilUsuario ? perfilUsuario.username + ' / ' + perfilUsuario.rol : 'Cargando...' }}</strong>
             </div>
             <div class="info-item">
               <span class="info-label">Empresa:</span>
+              <!-- La empresa puede quedar fija porque es un sistema interno -->
               <strong>PluriOne S.A. de C.V.</strong>
             </div>
             <div class="info-item">
               <span class="info-label">Estado de Cuenta:</span>
-              <span class="badge riesgo-bajo">Activo / Validado</span>
+              <span class="badge riesgo-bajo">{{ perfilUsuario ? 'Activo / Validado' : 'Cargando...' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Privilegios:</span>
-              <span>Auditoría RAG (GPT-4o), Segmentación, Carga</span>
+              <span>{{ perfilUsuario && perfilUsuario.rol === 'admin' ? 'Auditoría RAG (GPT-4o), Segmentación, Carga' : 'Segmentación, Carga' }}</span>
             </div>
           </div>
         </div>
@@ -392,6 +393,19 @@ const mostrarModalBuscador = ref(false);
 const inputBusquedaId = ref('');
 const errorBusqueda = ref('');
 const contratoVisualizado = ref(null);
+
+const perfilUsuario = ref(null);
+
+const cargarPerfil = async () => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/usuarios/me`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    });
+    perfilUsuario.value = response.data;
+  } catch (err) {
+    console.error("Error al obtener el perfil:", err);
+  }
+};
 
 const tituloContrato = ref('');
 const archivoSeleccionado = ref(null);
@@ -632,6 +646,7 @@ const obtenerClaseRiesgoGlobal = (puntaje) => {
 
 onMounted(() => {
   cargarContratos();
+  cargarPerfil();
 });
 </script>
 
