@@ -1,5 +1,6 @@
 import asyncio
 import os
+import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -13,6 +14,7 @@ from app.core.deps import get_current_user
 from app.services.ai_auditor import analizar_clausula_con_ia, generar_resumen_ejecutivo
 from app.services.pdf_generator import generar_pdf  
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 async def procesar_auditoria_background(auditoria_id: int, contrato_id: int):
@@ -29,14 +31,12 @@ async def procesar_auditoria_background(auditoria_id: int, contrato_id: int):
             )
             clausulas = result_clausulas.scalars().all()
 
-            
             tareas_ia = [analizar_clausula_con_ia(c.numero, c.titulo, c.texto) for c in clausulas]
             resultados_ia = await asyncio.gather(*tareas_ia)
             
             puntos_riesgo = 0
             todos_los_hallazgos = []
 
-            
             for clausula, resultado in zip(clausulas, resultados_ia):
                 for h in resultado["hallazgos"]:
                     hallazgo_bd = db_models.Hallazgo(
@@ -54,7 +54,6 @@ async def procesar_auditoria_background(auditoria_id: int, contrato_id: int):
                     elif h["nivel_riesgo"] == "Medio": puntos_riesgo += 15
                     else: puntos_riesgo += 5
 
-            
             result_auditoria = await db.execute(select(db_models.Auditoria).where(db_models.Auditoria.id == auditoria_id))
             auditoria = result_auditoria.scalars().first()
             
@@ -69,15 +68,13 @@ async def procesar_auditoria_background(auditoria_id: int, contrato_id: int):
             await db.commit()
 
         except Exception as e:
-            
-            print(f"Error procesando auditoría {auditoria_id}: {str(e)}")
+            # Sustitución del print por logging
+            logger.error(f"Error procesando auditoría {auditoria_id}: {str(e)}")
             result_auditoria = await db.execute(select(db_models.Auditoria).where(db_models.Auditoria.id == auditoria_id))
             auditoria = result_auditoria.scalars().first()
             if auditoria:
                 auditoria.estado = "error"
                 await db.commit()
-
-
 
 
 @router.post("/{contrato_id}/analizar", status_code=status.HTTP_202_ACCEPTED)
@@ -100,12 +97,10 @@ async def ejecutar_auditoria_contrato(
     if not contrato:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contrato no encontrado o acceso denegado.")
 
-    
     result_clausulas = await db.execute(select(db_models.Clausula.id).where(db_models.Clausula.contrato_id == contrato_id))
     if not result_clausulas.scalars().first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El contrato no tiene cláusulas segmentadas.")
 
-    
     nueva_auditoria = db_models.Auditoria(contrato_id=contrato.id, estado="en_proceso", puntaje_riesgo=0.0)
     db.add(nueva_auditoria)
     await db.commit()
@@ -119,12 +114,22 @@ async def ejecutar_auditoria_contrato(
         "estado": nueva_auditoria.estado
     }
 
-@router.get("/contrato/{contrato_id}")
+
+@router.get("/contrato/{contrato_id}", response_model=AuditoriaResponse)
 async def obtener_auditoria_contrato(
     contrato_id: int, 
     db: AsyncSession = Depends(get_db),
     current_user: db_models.Usuario = Depends(get_current_user)
 ):
+    result_contrato = await db.execute(
+        select(db_models.Contrato).where(
+            db_models.Contrato.id == contrato_id,
+            db_models.Contrato.usuario_id == current_user.id
+        )
+    )
+    if not result_contrato.scalars().first():
+        raise HTTPException(status_code=404, detail="Contrato no encontrado o acceso denegado")
+
     result_aud = await db.execute(
         select(db_models.Auditoria)
         .where(db_models.Auditoria.contrato_id == contrato_id)
@@ -141,12 +146,17 @@ async def obtener_auditoria_contrato(
     )
     hallazgos = result_hallazgos.scalars().all()
 
-    return {
-        "id": auditoria.id,
-        "estado": auditoria.estado,
-        "puntaje_riesgo": auditoria.puntaje_riesgo,
-        "hallazgos": hallazgos
-    }
+    return AuditoriaResponse(
+        id=auditoria.id,
+        contrato_id=auditoria.contrato_id,
+        fecha_auditoria=auditoria.fecha_auditoria,
+        puntaje_riesgo=auditoria.puntaje_riesgo,
+        resumen_ejecutivo=auditoria.resumen_ejecutivo,
+        estado=auditoria.estado,
+        total_hallazgos=len(hallazgos),
+        hallazgos=hallazgos
+    )
+
 
 @router.get("/contrato/{contrato_id}/exportar-pdf")
 async def exportar_reporte_pdf(

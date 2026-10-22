@@ -32,6 +32,7 @@ class AuditoriaResponse(BaseModel):
     puntaje_riesgo: float
     resumen_ejecutivo: Optional[str] = None
     estado: str
+    total_hallazgos: int = 0  
     hallazgos: List[HallazgoResponse] = []
 
     class Config:
