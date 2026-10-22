@@ -1,7 +1,9 @@
 import json
 import os
+import logging
 from typing import Dict, Any, List
-from openai import AsyncAzureOpenAI, AsyncOpenAI
+
+logger = logging.getLogger(__name__)
 
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
@@ -20,7 +22,6 @@ elif os.getenv("OPENAI_API_KEY"):
 
 
 async def analizar_clausula_con_ia(numero: str, titulo: str, texto: str) -> Dict[str, Any]:
-  
     if client:
         try:
             prompt_sistema = (
@@ -61,7 +62,7 @@ async def analizar_clausula_con_ia(numero: str, titulo: str, texto: str) -> Dict
             }
 
         except Exception as e:
-            print(f"[AI Auditor Warning] Error al invocar el servicio LLM: {e}. Usando fallback heurístico.")
+            logger.warning(f"[AI Auditor Warning] Error al invocar el servicio LLM: {e}. Usando fallback heurístico.")
 
     return _analizar_clausula_heuristico(numero, titulo, texto)
 
@@ -72,7 +73,6 @@ def _analizar_clausula_heuristico(numero: str, titulo: str, texto: str) -> Dict[
     texto_lower = texto.lower()
     hallazgos = []
 
-   
     if any(w in texto_lower for w in ["penalización", "multa", "sanción", "interés moratorio", "intereses moratorios", "pena convencional"]):
         hallazgos.append({
             "tipo": "Riesgo Financiero / Penalización",
@@ -140,7 +140,7 @@ async def generar_resumen_ejecutivo(hallazgos_totales: List[Dict[str, Any]], pun
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            print(f"[AI Auditor Warning] No se pudo generar el resumen ejecutivo con IA: {e}")
+            logger.warning(f"[AI Auditor Warning] No se pudo generar el resumen ejecutivo con IA: {e}")
 
     num_hallazgos = len(hallazgos_totales)
     if puntaje_riesgo >= 70:
@@ -154,6 +154,7 @@ async def generar_resumen_ejecutivo(hallazgos_totales: List[Dict[str, Any]], pun
         rec = "El documento presenta un perfil de riesgo aceptable con observaciones mínimas."
 
     return f"Auditoría completada. Nivel de riesgo general: {nivel} (Puntaje: {puntaje_riesgo:.1f}/100). Total de hallazgos registrados: {num_hallazgos}. {rec}" 
+
 
 async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[str, list[str]]:
     """
@@ -172,7 +173,7 @@ async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[
 
     clausulas_top = sorted(clausulas, key=lambda x: x["score"], reverse=True)[:3]
 
-    contexto_filtrado = "\n\n".join([f"[Cláusula {c['numero']} - {c['titulo']}]: {c['texto']}" for c in clausulas_top])
+    contexto_filtrado = "\n\n".join([f"[Cláusula {c['numero']} {c['titulo']}]: {c['texto']}" for c in clausulas_top])
     referencias = [f"Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
 
     prompt_sistema = (
@@ -200,5 +201,5 @@ async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[
         return respuesta_ia, referencias
 
     except Exception as e:
-        print(f"[AI Chat Warning] Error al procesar el chat RAG: {e}")
+        logger.error(f"[AI Chat Warning] Error al procesar el chat RAG: {e}")
         return "Ocurrió un error al procesar tu consulta con el asistente de IA.", []
