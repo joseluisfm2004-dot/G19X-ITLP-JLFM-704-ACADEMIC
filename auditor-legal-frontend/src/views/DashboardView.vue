@@ -160,7 +160,7 @@
                        title="Descargar Reporte PDF"
                            style="background-color: #2b6cb0; border: none; cursor: pointer;"
                       >
-                     📄 PDF
+                      📄 PDF
                       </button>
                   </td>
                 </tr>
@@ -255,7 +255,7 @@
           
           <div v-else class="chat-active-container">
             <div class="chat-header">
-              <h3>Consulta: {{ contratoVisualizado?.titulo }}</h3>
+              <h3>Consulta: {{ contratoVisualizado?.titulo || contratoSeleccionadoChat?.titulo }}</h3>
             </div>
             
             <div class="chat-history-area" ref="chatHistoryRef">
@@ -267,6 +267,13 @@
                 <div class="chat-bubble">
                   <span class="bubble-author">{{ msg.rol === 'user' ? 'Tú (Auditor)' : 'IA Azure GPT-4o' }}</span>
                   <p>{{ msg.texto }}</p>
+                  
+                  <div v-if="msg.citas && msg.citas.length > 0" class="chat-citations">
+                    <span class="citations-title">Fuentes consultadas:</span>
+                    <ul>
+                      <li v-for="(cita, i) in msg.citas" :key="i">📄 {{ cita }}</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
               
@@ -559,12 +566,12 @@ const auditarContrato = async (id) => {
         });
 
         if (res.data.estado && res.data.estado.toUpperCase().includes('COMPLETAD')) {
-    clearInterval(intervalo);
-    resultadoAuditoria.value = res.data; 
-    auditando.value = false;
-    cargarContratos();
-}
-        else if (res.data.estado === 'ERROR') {
+            clearInterval(intervalo);
+            resultadoAuditoria.value = res.data; 
+            auditando.value = false;
+            cargarContratos();
+        }
+        else if (res.data.estado && res.data.estado.toLowerCase() === 'error') {
           clearInterval(intervalo);
           alert('Hubo un error al auditar el contrato con la IA.');
           auditando.value = false;
@@ -597,7 +604,12 @@ const seleccionarContratoChat = async (item) => {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     
-    chatMensajes.value = response.data.mensajes || [];
+    if (response.data.mensajes) {
+        chatMensajes.value = response.data.mensajes.map(msg => ({
+            rol: msg.rol_emisor === 'ia' ? 'ia' : 'user',
+            texto: msg.contenido
+        }));
+    }
   } catch (error) {
     console.error("Error al cargar historial del chat:", error);
   }
@@ -626,7 +638,14 @@ const enviarMensajeChat = async () => {
       { headers: { 'Authorization': `Bearer ${authStore.token}` } }
     );
     
-    chatMensajes.value.push({ rol: 'ia', texto: response.data.respuesta });
+    const nombreContrato = contratoSeleccionadoChat.value?.nombre_archivo || 'Documento';
+    const referencias = (response.data.clausulas_citadas || []).map(cita => `${nombreContrato} - ${cita}`);
+
+    chatMensajes.value.push({ 
+        rol: 'ia', 
+        texto: response.data.respuesta,
+        citas: referencias
+    });
   } catch (err) {
     console.error("Error en el chat:", err);
     chatMensajes.value.push({ 
@@ -786,8 +805,6 @@ onMounted(() => {
 .logout-btn:hover { background-color: #ef4444; color: white; }
 .btn-icon { width: 18px; height: 18px; }
 
-
-
 .main-content {
   padding: 2rem;
   max-width: 1400px;
@@ -823,7 +840,6 @@ onMounted(() => {
 .tab-btn svg { width: 20px; height: 20px; }
 .tab-btn:hover { background-color: #f8fafc; color: #334155; }
 .tab-btn.active { color: #2563eb; background-color: #eff6ff; border: 1px solid #bfdbfe; }
-
 
 .chat-layout {
   display: flex;
@@ -947,6 +963,12 @@ onMounted(() => {
 
 .bubble-author { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; opacity: 0.8; }
 .chat-bubble p { margin: 0; font-size: 0.95rem; white-space: pre-wrap; line-height: 1.6; }
+
+.chat-citations { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(0, 0, 0, 0.08); }
+.chat-bubble-wrapper.ia .chat-citations { border-top-color: #e2e8f0; }
+.citations-title { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.5rem; }
+.chat-citations ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.35rem; }
+.chat-citations li { font-size: 0.85rem; color: #475569; background-color: #f1f5f9; padding: 0.4rem 0.75rem; border-radius: 6px; border-left: 3px solid #3b82f6; display: inline-block; word-break: break-word; }
 
 .chat-input-area {
   padding: 1rem 1.5rem;
