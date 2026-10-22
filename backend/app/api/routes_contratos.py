@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload 
-
-from app.services.ai_auditor import analizar_clausula_con_ia, generar_resumen_ejecutivo, consultar_contrato_rag
+from app.services.ai_auditor import consultar_contrato_rag
 from app.db.database import get_db
 import app.models.models as db_models
 from app.schemas.contratos import ContratoResponse
@@ -96,7 +95,6 @@ async def procesar_extraer_texto(
     current_user: db_models.Usuario = Depends(get_current_user)
 ):
     """Extrae el texto del documento guardado en disco y actualiza su estado."""
-    # 1. Buscar el contrato en la BD y validar propiedad
     result = await db.execute(
         select(db_models.Contrato).where(
             db_models.Contrato.id == contrato_id,
