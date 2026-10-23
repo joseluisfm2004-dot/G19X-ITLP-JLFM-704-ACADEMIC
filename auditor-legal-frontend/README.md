@@ -1,5 +1,32 @@
-# Vue 3 + Vite
+# Auditor Inteligente de Contratos - Frontend
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Este es el cliente web para el sistema de Auditoría de Contratos, construido con **Vue 3** y **Vite**. Proporciona la interfaz gráfica para la carga de documentos, visualización del historial, segmentación, y un chat interactivo impulsado por IA (RAG).
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Requisitos Previos
+- [Node.js](https://nodejs.org/) (v16 o superior)
+- NPM o Yarn
+
+## Configuración Inicial
+
+1. **Instalar dependencias:**
+```bash
+npm install
+```
+
+2. **Variables de Entorno:**
+Copia el archivo de ejemplo y asegúrate de que apunte a tu backend local:
+```bash
+cp .env.example .env
+```
+*(Debe contener `VITE_API_URL=http://localhost:8000`)*
+
+3. **Ejecutar en entorno de desarrollo:**
+```bash
+npm run dev
+```
+
+## Tecnologías Principales
+* Vue 3 (Composition API)
+* Vite
+* Axios (Peticiones HTTP al backend)
+* html2pdf.js (Exportación de reportes)
