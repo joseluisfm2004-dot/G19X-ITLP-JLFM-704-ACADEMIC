@@ -14,6 +14,7 @@ from app.schemas.chat import SesionChatResponse
 from app.core.deps import get_current_user
 from app.services.extractor import extraer_texto_documento
 from app.services.parser import segmentar_texto_en_clausulas
+import uuid     
 
 router = APIRouter()
 
@@ -41,10 +42,9 @@ async def upload_contrato(
         )
 
   
-    nombre_guardado = f"user_{current_user.id}_{int(os.path.getmtime('.'))}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, nombre_guardado)
+    nombre_guardado = f"user_{current_user.id}_{uuid.uuid4()}_{file.filename}"  
+      file_path = os.path.join(UPLOAD_DIR, nombre_guardado)
 
-    
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
