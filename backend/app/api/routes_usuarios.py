@@ -59,6 +59,12 @@ async def list_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: db_models.Usuario = Depends(get_current_user) 
 ):
+    if current_user.rol != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo los administradores pueden ver el listado de usuarios."
+        )
+
     result = await db.execute(
         select(db_models.Usuario)
         .order_by(db_models.Usuario.id) 
@@ -77,6 +83,12 @@ async def get_usuario(
     db: AsyncSession = Depends(get_db),
     current_user: db_models.Usuario = Depends(get_current_user)
 ):
+    if current_user.rol != "admin" and current_user.id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para ver la información de este usuario."
+        )
+
     result = await db.execute(select(db_models.Usuario).where(db_models.Usuario.id == usuario_id))
     usuario = result.scalars().first()
 
