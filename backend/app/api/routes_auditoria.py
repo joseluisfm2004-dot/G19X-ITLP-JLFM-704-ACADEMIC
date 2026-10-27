@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from app.db.database import get_db, AsyncSessionLocal 
 import app.models.models as db_models
-from app.schemas.auditoria import AuditoriaResponse
+from app.schemas.auditoria import AuditoriaResponse, HallazgoResponse 
 from app.core.deps import get_current_user
 from app.services.ai_auditor import analizar_clausula_con_ia, generar_resumen_ejecutivo
 from app.services.pdf_generator import generar_pdf  
@@ -68,7 +68,6 @@ async def procesar_auditoria_background(auditoria_id: int, contrato_id: int):
             await db.commit()
 
         except Exception as e:
-            # Sustitución del print por logging
             logger.error(f"Error procesando auditoría {auditoria_id}: {str(e)}")
             result_auditoria = await db.execute(select(db_models.Auditoria).where(db_models.Auditoria.id == auditoria_id))
             auditoria = result_auditoria.scalars().first()
@@ -141,11 +140,27 @@ async def obtener_auditoria_contrato(
         raise HTTPException(status_code=404, detail="Auditoría no encontrada")
 
     result_hallazgos = await db.execute(
-        select(db_models.Hallazgo)
+        select(db_models.Hallazgo, db_models.Clausula)
+        .outerjoin(db_models.Clausula, db_models.Hallazgo.clausula_id == db_models.Clausula.id)
         .where(db_models.Hallazgo.auditoria_id == auditoria.id)
     )
-    hallazgos = result_hallazgos.scalars().all()
+    filas_hallazgos = result_hallazgos.all()
 
+    hallazgos = []
+    for hallazgo, clausula in filas_hallazgos:
+        hallazgos.append(
+            HallazgoResponse(
+                id=hallazgo.id,
+                clausula_id=hallazgo.clausula_id,
+                numero_clausula=clausula.numero if clausula else None,
+                titulo_clausula=clausula.titulo if clausula else None,
+                nivel_riesgo=hallazgo.nivel_riesgo,
+                tipo=hallazgo.tipo,
+                descripcion=hallazgo.descripcion,
+                sugerencia_mejora=hallazgo.sugerencia_mejora
+            )
+        )
+        
     return AuditoriaResponse(
         id=auditoria.id,
         contrato_id=auditoria.contrato_id,

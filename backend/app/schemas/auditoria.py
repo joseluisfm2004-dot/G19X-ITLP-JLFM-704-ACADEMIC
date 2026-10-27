@@ -5,6 +5,8 @@ from datetime import datetime
 class HallazgoResponse(BaseModel):
     id: int
     clausula_id: Optional[int] = None
+    numero_clausula: Optional[str] = None
+    titulo_clausula: Optional[str] = None
     nivel_riesgo: str
     tipo: str
     descripcion: str
