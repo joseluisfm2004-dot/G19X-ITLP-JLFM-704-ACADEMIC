@@ -174,14 +174,15 @@ async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[
 
     clausulas_top = sorted(clausulas, key=lambda x: x["score"], reverse=True)[:3]
 
-    contexto_filtrado = "\n\n".join([f"[Cláusula {c['numero']} {c['titulo']}]: {c['texto']}" for c in clausulas_top])
-    referencias = [f"Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
+    contexto_filtrado = "\n\n".join([f"[{c.get('contrato', 'Contrato Desconocido')} - Cláusula {c['numero']} {c['titulo']}]: {c['texto']}" for c in clausulas_top])
+    
+    referencias = [f"{c.get('contrato', 'Contrato Desconocido')} - Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
 
     prompt_sistema = (
-        "Eres un asistente legal experto de PluriOne S.A. de C.V. "
+        "Eres un asistente legal experto. "
         "Tu tarea es responder preguntas sobre el contrato proporcionado utilizando ÚNICAMENTE "
         "el contexto de las cláusulas recuperadas. "
-        "REGLA OBLIGATORIA: Debes mencionar explícitamente en tu respuesta de qué cláusula obtuviste la información. "
+        "REGLA OBLIGATORIA: Debes mencionar explícitamente en tu respuesta de qué cláusula y contrato obtuviste la información. "
         "Si la respuesta no se encuentra en el contexto, indícalo claramente y no inventes datos."
     )
     

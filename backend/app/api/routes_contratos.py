@@ -14,10 +14,10 @@ from app.schemas.chat import SesionChatResponse
 from app.core.deps import get_current_user
 from app.services.extractor import extraer_texto_documento
 from app.services.parser import segmentar_texto_en_clausulas
-import uuid     
+import uuid
+
 
 router = APIRouter()
-
 
 UPLOAD_DIR = "uploads/contratos"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -32,7 +32,6 @@ async def upload_contrato(
 ):
     """Sube un documento de contrato (PDF/Word), lo almacena localmente y crea el registro en la BD."""
     
-   
     extensiones_permitidas = [".pdf", ".docx"]
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in extensiones_permitidas:
@@ -41,9 +40,8 @@ async def upload_contrato(
             detail=f"Formato de archivo no permitido. Formatos válidos: {', '.join(extensiones_permitidas)}"
         )
 
-  
-    nombre_guardado = f"user_{current_user.id}_{uuid.uuid4()}_{file.filename}"  
-      file_path = os.path.join(UPLOAD_DIR, nombre_guardado)
+    nombre_guardado = f"user_{current_user.id}_{uuid.uuid4()}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, nombre_guardado)
 
     try:
         with open(file_path, "wb") as buffer:
@@ -54,7 +52,6 @@ async def upload_contrato(
             detail=f"Error al guardar el archivo en el servidor: {str(e)}"
         )
 
-  
     nuevo_contrato = db_models.Contrato(
         titulo=titulo,
         nombre_archivo=file.filename,
@@ -220,14 +217,14 @@ async def chat_con_contrato(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contrato no encontrado.")
 
     result_clausulas = await db.execute(
-        select(db_models.Clausula)
+        select(db_models.Clausula, db_models.Contrato)
         .join(db_models.Contrato, db_models.Clausula.contrato_id == db_models.Contrato.id)
         .where(db_models.Contrato.usuario_id == current_user.id)
         .order_by(db_models.Clausula.contrato_id, db_models.Clausula.orden)
     )
-    clausulas = result_clausulas.scalars().all()
+    filas_clausulas = result_clausulas.all()
 
-    if not clausulas:
+    if not filas_clausulas:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No hay contratos segmentados disponibles en la base de conocimiento para consultar."
@@ -255,7 +252,15 @@ async def chat_con_contrato(
     db.add(mensaje_usuario)
     await db.commit()
 
-    clausulas_dicts = [{"numero": c.numero, "titulo": c.titulo, "texto": c.texto} for c in clausulas]
+    clausulas_dicts = [
+        {
+            "contrato": contrato_obj.titulo, 
+            "numero": c.numero, 
+            "titulo": c.titulo, 
+            "texto": c.texto
+        } 
+        for c, contrato_obj in filas_clausulas
+    ]
 
     respuesta_ia, referencias = await consultar_contrato_rag(
         pregunta=payload.pregunta,
