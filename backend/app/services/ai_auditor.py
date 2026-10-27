@@ -2,6 +2,7 @@ import json
 import os
 import logging
 from typing import Dict, Any, List
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
