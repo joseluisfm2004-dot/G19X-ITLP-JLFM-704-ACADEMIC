@@ -633,13 +633,12 @@ const enviarMensajeChat = async () => {
   scrollChatAbajo();
 
   try {
-   const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${contratoSeleccionadoId.value}/chat`, 
-      { pregunta: pregunta }, 
-      { headers: { 'Authorization': `Bearer ${authStore.token}` } }
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${contratoSeleccionadoId.value}/chat`, 
+       { pregunta: pregunta }, 
+       { headers: { 'Authorization': `Bearer ${authStore.token}` } }
     );
     
-    const nombreContrato = contratoSeleccionadoChat.value?.nombre_archivo || 'Documento';
-    const referencias = (response.data.clausulas_citadas || []).map(cita => `${nombreContrato} - ${cita}`);
+    const referencias = response.data.clausulas_citadas || [];
 
     chatMensajes.value.push({ 
         rol: 'ia', 
