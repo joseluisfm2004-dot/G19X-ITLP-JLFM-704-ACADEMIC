@@ -24,44 +24,20 @@ Para que el backend asíncrono funcione correctamente con SQL Server, es obligat
 3. **Variables de Entorno:**
    - Copia el archivo `backend/.env.example` a un archivo `.env` dentro de la carpeta `backend/` y configura tu cadena de conexión y credenciales de Azure OpenAI.
 
-## Configuración del Entorno Local
-1. Clonar el repositorio.
-2. En la carpeta `backend/`, duplicar `.env.example`, renombrarlo a `.env` y llenar las credenciales (Azure, BD y `SECRET_KEY`).
-3. En la carpeta `auditor-legal-frontend/`, crear un archivo `.env` con la variable `VITE_API_URL=http://localhost:8000`.
-4. Instalar dependencias del backend (`pip install -r requirements.txt`) y levantar el servidor (`uvicorn app.main:app --reload`).
-5. Instalar dependencias del frontend (`npm install`) y levantar la vista (`npm run dev`).
+## Configuración y Orden de Arranque Inicial
+Sigue estos pasos en orden para levantar el proyecto desde cero:
 
----
-
-## 🔐 Creación del Primer Administrador (Nota de Seguridad)
-
-Por requerimientos del proyecto, el registro público de usuarios se encuentra deshabilitado. La creación de la primera cuenta administradora para el departamento de IT se realiza a través de un script seguro por consola.
-
-Con tu entorno virtual activado y la base de datos corriendo, ejecuta en la raíz de `backend/`:
-
-```bash
-python crear_admin.py
-```
-El script te solicitará tu nombre, correo y una contraseña segura. Una vez creado el perfil, utiliza estas credenciales para iniciar sesión en el frontend.
-
----
-
-## 🤖 Declaración de Uso de Inteligencia Artificial
-
-Para el desarrollo, estructuración y optimización de este proyecto académico, se utilizó asistencia de Inteligencia Artificial (modelos LLM) como herramienta de *pair programming*, generación de componentes repetitivos, depuración de código asíncrono y redacción de documentación técnica. 
-
-Toda la arquitectura, lógica de negocio y ensamblaje final fueron revisados y validados manualmente para garantizar el cumplimiento de los estándares de ingeniería de software requeridos.
-
-## Orden de Arranque Inicial
-Para la primera ejecución del proyecto, sigue este orden exacto para inicializar la base de datos y tu usuario maestro:
-1. Asegúrate de tener tu base de datos en SQL Server creada y las credenciales en tu archivo `.env`.
-2. Entra a la carpeta backend, activa tu entorno virtual y ejecuta python crear_admin.py. Esto inicializará las tablas automáticamente y te pedirá crear el primer administrador.
-3. Levanta el servidor del backend (`uvicorn app.main:app --reload`).
-4. Levanta el servidor del frontend (`npm run dev`).
+1. **Clonar el repositorio.**
+2. **Base de Datos:** Asegúrate de tener tu base de datos en SQL Server creada (`CREATE DATABASE auditoria_legal_db;`).
+3. **Variables de Entorno (Backend):** Entra a la carpeta `backend/`, duplica el archivo `.env.example`, renómbralo a `.env` y llena tus credenciales (Base de datos, `SECRET_KEY`, y tus llaves de IA, ya sea de Azure OpenAI u OpenAI estándar).
+4. **Entorno de Python:** Crea un entorno virtual limpio (`python -m venv venv`), actívalo (`.\venv\Scripts\activate`) y ejecuta `pip install -r requirements.txt`.
+5. **Crear Administrador:** Con el entorno activado, ejecuta `python crear_admin.py`. Esto inicializará las tablas automáticamente y te pedirá crear la primera cuenta administradora.
+6. **Levantar Backend:** Ejecuta `uvicorn app.main:app --reload`.
+7. **Variables y Frontend:** En la carpeta `auditor-legal-frontend/`, crea un archivo `.env` con la variable `VITE_API_URL=http://localhost:8000`. Luego ejecuta `npm install` y levanta la vista con `npm run dev`.
 
 ## Guía de Uso Rápido (Flujo de Trabajo)
 El flujo principal del Auditor Inteligente consta de 4 pasos:
-1. **Subir:** Inicia sesión y carga un contrato en formato PDF desde el panel principal.
-2. **Segmentar:** El sistema procesará el documento en segundo plano y lo dividirá en cláusulas individuales.
-3. **Auditar:** Ejecuta el análisis automático con IA (Azure GPT-4o) para generar tarjetas con hallazgos, riesgos y obligaciones.
+1. **Subir:** Inicia sesión y carga un contrato en formato **PDF o DOCX** desde el panel principal.
+2. **Segmentar:** El sistema procesará el documento inmediatamente y lo dividirá en cláusulas individuales.
+3. **Auditar:** Ejecuta el análisis automático con IA; este proceso corre **en segundo plano** para generar tarjetas con hallazgos, riesgos y obligaciones.
 4. **Preguntar:** Abre el chat integrado para hacer preguntas específicas; la IA responderá citando el nombre del contrato y la cláusula exacta de origen.
