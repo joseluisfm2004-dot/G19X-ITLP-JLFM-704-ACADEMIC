@@ -141,6 +141,15 @@ async def segmentar_y_guardar_clausulas(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Contrato no encontrado."
         )
+    
+    ya_segmentado = await db.execute(
+        select(db_models.Clausula.id).where(db_models.Clausula.contrato_id == contrato.id)
+    )
+    if ya_segmentado.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este contrato ya fue segmentado."
+        )
 
     texto_completo = extraer_texto_documento(contrato.ruta_archivo)
 

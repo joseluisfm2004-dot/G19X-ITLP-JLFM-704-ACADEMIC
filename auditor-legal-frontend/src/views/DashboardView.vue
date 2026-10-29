@@ -147,7 +147,12 @@
                     <span :class="['badge', c.estado]">{{ c.estado }}</span>
                   </td>
                   <td class="action-buttons-cell">
-                    <button type="button" @click.prevent="procesarContrato(c.id)" class="action-btn segment-btn" title="Segmentar cláusulas">
+                   <button 
+                      v-if="c.estado === 'pendiente' || c.estado === 'procesando'"
+                      type="button" 
+                      @click.prevent="procesarContrato(c.id)" 
+                      class="action-btn segment-btn" 
+                      title="Segmentar cláusulas">
                       Segmentar
                     </button>
                     <button @click="auditarContrato(c.id)" :disabled="auditando" class="action-btn audit-btn" title="Ejecutar Auditoría con Azure OpenAI">
