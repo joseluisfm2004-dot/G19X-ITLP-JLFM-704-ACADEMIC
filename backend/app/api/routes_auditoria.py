@@ -204,7 +204,8 @@ async def exportar_reporte_pdf(
     result_hallazgos = await db.execute(
         select(db_models.Hallazgo, db_models.Clausula)
         .join(db_models.Clausula, db_models.Hallazgo.clausula_id == db_models.Clausula.id)
-        .where(db_models.Clausula.contrato_id == contrato.id)
+        .where(db_models.Hallazgo.auditoria_id == auditoria.id)
+        .order_by(db_models.Clausula.orden)
     )
     hallazgos_db = result_hallazgos.all()
 
