@@ -147,25 +147,33 @@
                     <span :class="['badge', c.estado]">{{ c.estado }}</span>
                   </td>
                   <td class="action-buttons-cell">
-                   <button
-                      v-if="c.estado !== 'SEGMENTADO' && c.estado !== 'AUDITORIA_COMPLETADA'"
+                    
+                    <button
+                      v-if="!c.estado || c.estado.toLowerCase() === 'pendiente' || c.estado.toLowerCase() === 'nuevo'"
                       type="button"
                       @click.prevent="procesarContrato(c.id)"
                       class="action-btn segment-btn"
                       title="Segmentar cláusulas">
                       Segmentar
                     </button>
-                    <button v-if="c.estado === 'SEGMENTADO'" @click="auditarContrato(c.id)" :disabled="auditando" class="action-btn audit-btn">                      {{ auditando && contratoSeleccionadoId === c.id ? 'Auditando...' : 'Auditar con IA' }}
+
+                    <button
+                      v-if="c.estado && c.estado.toLowerCase() !== 'pendiente' && c.estado.toLowerCase() !== 'nuevo' && !c.estado.toLowerCase().includes('auditado') && !c.estado.toLowerCase().includes('completada')"
+                      @click="auditarContrato(c.id)"
+                      :disabled="auditando"
+                      class="action-btn audit-btn">
+                      {{ auditando && contratoSeleccionadoId === c.id ? 'Auditando...' : 'Auditar con IA' }}
                     </button>
-                   <button 
+
+                    <button
                       v-if="c.estado && (c.estado.toLowerCase().includes('auditado') || c.estado.toLowerCase().includes('completada'))"
                       @click="descargarPdfSeguro(c.id)"
-                          class="action-btn download-btn-table"
-                       title="Descargar Reporte PDF"
-                           style="background-color: #2b6cb0; border: none; cursor: pointer;"
-                      >
-                      📄 PDF
-                      </button>
+                      class="action-btn download-btn-table"
+                      title="Descargar Reporte PDF"
+                      style="background-color: #2b6cb0; border: none; cursor: pointer;">
+                      PDF
+                    </button>
+
                   </td>
                 </tr>
               </tbody>
@@ -543,10 +551,10 @@ const procesarContrato = async (id) => {
       headers: { 'Authorization': `Bearer ${authStore.token}` }
     });
     clausulas.value = response.data;
-    await cargarContratos();
     
     alert("¡Éxito! El contrato ha sido segmentado en cláusulas y guardado en la base de datos.");
     
+    await cargarContratos();
   } catch (err) {
     console.error("Error en segmentación:", err);
     alert('Error al segmentar el contrato. Verifique que el archivo PDF contenga texto estructurado.');

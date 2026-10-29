@@ -173,6 +173,9 @@ async def segmentar_y_guardar_clausulas(
         nuevas_clausulas.append(clausula_bd)
 
     db.add_all(nuevas_clausulas)
+    
+    contrato.estado = "SEGMENTADO"
+    
     await db.commit()
 
     result_clausulas = await db.execute(
