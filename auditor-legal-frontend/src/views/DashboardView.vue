@@ -56,6 +56,15 @@
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           Asistente IA (Chat)
         </button>
+        <button 
+          v-if="perfilUsuario?.rol === 'admin'" 
+          @click="vistaActual = 'usuarios'; cargarUsuarios()" 
+          :class="['tab-btn', vistaActual === 'usuarios' ? 'active' : '']">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 1.2rem; height: 1.2rem; margin-right: 0.5rem; display: inline-block; vertical-align: text-bottom;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          Usuarios
+        </button>
       </div>
 
       <div v-if="vistaActual === 'carga'" class="view-section">
@@ -147,7 +156,6 @@
                     <span :class="['badge', c.estado]">{{ c.estado }}</span>
                   </td>
                   <td class="action-buttons-cell">
-                    
                     <button
                       v-if="!c.estado || c.estado.toLowerCase() === 'pendiente' || c.estado.toLowerCase() === 'nuevo'"
                       type="button"
@@ -173,7 +181,6 @@
                       style="background-color: #2b6cb0; border: none; cursor: pointer;">
                       PDF
                     </button>
-
                   </td>
                 </tr>
               </tbody>
@@ -232,7 +239,6 @@
       </div>
 
       <div v-if="vistaActual === 'chat'" class="chat-layout">
-        
         <aside class="chat-sidebar">
           <div class="sidebar-header">
             <span class="sidebar-title">Todas las consultas</span>
@@ -318,9 +324,59 @@
         </main>
       </div>
 
+      <div v-if="vistaActual === 'usuarios'" class="view-section usuarios-section">
+        <div class="card">
+          <h3>Crear Nuevo Auditor</h3>
+          <p>Agrega un nuevo usuario al sistema para que pueda gestionar contratos.</p>
+          
+          <div v-if="mensajeUsuario.texto" :class="['alert', mensajeUsuario.tipo === 'exito' ? 'alert-success' : 'alert-danger']" style="margin-bottom: 15px; padding: 10px; border-radius: 5px;">
+            {{ mensajeUsuario.texto }}
+          </div>
+
+          <form @submit.prevent="crearAuditor" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 30px;">
+            <input type="text" v-model="nuevoUsuario.nombre" placeholder="Nombre completo" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <input type="email" v-model="nuevoUsuario.email" placeholder="Correo electrónico" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <input type="password" v-model="nuevoUsuario.password" placeholder="Contraseña segura" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            
+            <button type="submit" class="action-btn" style="background-color: #2b6cb0; color: white; padding: 9px 15px; border: none; border-radius: 4px; cursor: pointer;">
+              Crear Usuario
+            </button>
+          </form>
+
+          <hr style="margin-bottom: 20px; border: 0; border-top: 1px solid #eee;">
+
+          <h3>Usuarios Existentes</h3>
+          <div class="table-responsive">
+            <table class="contracts-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Fecha de Creación</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="user in listaUsuarios" :key="user.id">
+                  <td><span class="id-tag">#{{ user.id }}</span></td>
+                  <td><strong>{{ user.nombre }}</strong></td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    <span :class="['badge', user.rol === 'admin' ? 'purple' : 'auditado']">
+                      {{ user.rol.toUpperCase() }}
+                    </span>
+                  </td>
+                  <td>{{ new Date(user.fecha_creacion).toLocaleDateString() }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </main>
 
-   
     <div v-if="mostrarModalBuscador" class="fixed-modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
@@ -716,6 +772,41 @@ const obtenerClaseRiesgoGlobal = (puntaje) => {
   if (puntaje >= 70) return 'score-alto';
   if (puntaje >= 30) return 'score-medio';
   return 'score-bajo';
+};
+
+const listaUsuarios = ref([]);
+const nuevoUsuario = ref({ nombre: '', email: '', password: '' });
+const mensajeUsuario = ref({ texto: '', tipo: '' });
+
+const cargarUsuarios = async () => {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/usuarios/`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    });
+    listaUsuarios.value = response.data;
+  } catch (err) {
+    console.error("Error al cargar usuarios:", err);
+  }
+};
+
+const crearAuditor = async () => {
+  mensajeUsuario.value = { texto: '', tipo: '' };
+  try {
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/usuarios/`, nuevoUsuario.value, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    });
+    
+    mensajeUsuario.value = { texto: '¡Auditor creado con éxito!', tipo: 'exito' };
+    nuevoUsuario.value = { nombre: '', email: '', password: '' }; 
+    await cargarUsuarios();
+    
+  } catch (err) {
+    console.error("Error al crear auditor:", err);
+    mensajeUsuario.value = { 
+      texto: err.response?.data?.detail || 'Error al crear el usuario. Verifica los datos.', 
+      tipo: 'error' 
+    };
+  }
 };
 
 onMounted(() => {
