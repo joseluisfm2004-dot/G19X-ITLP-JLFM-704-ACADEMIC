@@ -612,8 +612,9 @@ const procesarContrato = async (id) => {
     
     await cargarContratos();
   } catch (err) {
-    console.error("Error en segmentación:", err);
-    alert('Error al segmentar el contrato. Verifique que el archivo PDF contenga texto estructurado.');
+  console.error("Error en segmentación:", err);
+  const detalle = err.response?.data?.detail;
+  alert(detalle || 'No se pudo segmentar el contrato. Revisa que el PDF o DOCX tenga texto.');
   }
 };
 
