@@ -40,7 +40,7 @@ async def upload_contrato(
             detail=f"Formato de archivo no permitido. Formatos válidos: {', '.join(extensiones_permitidas)}"
         )
 
-    nombre_guardado = f"user_{current_user.id}_{uuid.uuid4()}_{file.filename}"
+    nombre_guardado = f"user_{current_user.id}_{uuid.uuid4()}{ext}"
     file_path = os.path.join(UPLOAD_DIR, nombre_guardado)
 
     try:
@@ -54,7 +54,7 @@ async def upload_contrato(
 
     nuevo_contrato = db_models.Contrato(
         titulo=titulo,
-        nombre_archivo=file.filename,
+        nombre_archivo=os.path.basename(file.filename),
         ruta_archivo=file_path,
         estado="pendiente",
         usuario_id=current_user.id
