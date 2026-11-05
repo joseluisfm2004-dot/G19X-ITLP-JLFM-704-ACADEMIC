@@ -676,7 +676,8 @@ const seleccionarContratoChat = async (item) => {
     if (response.data.mensajes) {
         chatMensajes.value = response.data.mensajes.map(msg => ({
             rol: msg.rol_emisor === 'ia' ? 'ia' : 'user',
-            texto: msg.contenido
+            texto: msg.contenido,
+            citas: msg.citas ? msg.citas.split('\n') : []
         }));
     }
   } catch (error) {

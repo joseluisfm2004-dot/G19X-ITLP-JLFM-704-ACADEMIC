@@ -16,7 +16,6 @@ from app.services.extractor import extraer_texto_documento
 from app.services.parser import segmentar_texto_en_clausulas
 import uuid
 
-
 router = APIRouter()
 
 UPLOAD_DIR = "uploads/contratos"
@@ -282,7 +281,8 @@ async def chat_con_contrato(
     mensaje_ia = db_models.MensajeChat(
         sesion_id=sesion.id,
         rol_emisor="ia",
-        contenido=respuesta_ia
+        contenido=respuesta_ia,
+        citas="\n".join(referencias)
     )
     db.add(mensaje_ia)
     await db.commit()

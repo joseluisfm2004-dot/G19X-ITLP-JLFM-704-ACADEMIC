@@ -5,6 +5,8 @@ from typing import List
 class MensajeChatBase(BaseModel):
     rol_emisor: str
     contenido: str
+    citas: Optional[str] = None
+
 
 class MensajeChatResponse(MensajeChatBase):
     id: int

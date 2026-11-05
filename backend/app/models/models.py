@@ -104,9 +104,10 @@ class MensajeChat(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sesion_id = Column(Integer, ForeignKey("sesiones_chat.id"), nullable=False)
-    rol_emisor = Column(String(50), nullable=False)  # Esperado: 'user' o 'ia'
+    rol_emisor = Column(String(50), nullable=False) 
     contenido = Column(Text, nullable=False)
     fecha_envio = Column(DateTime, default=datetime.utcnow)
+    citas = Column(Text, nullable=True)
 
  
     sesion = relationship("SesionChat", back_populates="mensajes")
