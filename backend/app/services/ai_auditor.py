@@ -165,18 +165,23 @@ async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[
     if not client:
         return "El servicio de Inteligencia Artificial no está configurado actualmente.", []
 
+    PALABRAS_VACIAS = {"de", "la", "el", "que", "en", "y", "a", "los", "las", "del", "se", "por", "un", "una", "es", "con", "para"}
+
     palabras_pregunta = set(pregunta.lower().replace("?", "").replace("¿", "").replace(",", "").split())
+    palabras_pregunta = {p for p in palabras_pregunta if p not in PALABRAS_VACIAS}
     
     for c in clausulas:
         palabras_texto = set((c["titulo"] + " " + c["texto"]).lower().split())
         interseccion = palabras_pregunta.intersection(palabras_texto)
         c["score"] = len(interseccion)
 
-    clausulas_top = sorted(clausulas, key=lambda x: x["score"], reverse=True)[:3]
+    candidatas = [c for c in clausulas if c["score"] > 0]
+    if not candidatas:
+        return "No encontré cláusulas relacionadas con tu pregunta en tus contratos.", []
 
-    contexto_filtrado = "\n\n".join([f"[{c.get('contrato', 'Contrato Desconocido')} - Cláusula {c['numero']} {c['titulo']}]: {c['texto']}" for c in clausulas_top])
-    
-    referencias = [f"{c.get('contrato', 'Contrato Desconocido')} - Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
+    clausulas_top = sorted(candidatas, key=lambda x: x["score"], reverse=True)[:3]
+    contexto_filtrado = "\n\n".join([f"[{c.get('contrato', 'Contrato Desconocido')} Cláusula {c['numero']} {c['titulo']}]: {c['texto']}" for c in clausulas_top])
+    referencias = [f"{c.get('contrato', 'Contrato Desconocido')} Cláusula {c['numero']}: {c['titulo']}" for c in clausulas_top]
 
     prompt_sistema = (
         "Eres un asistente legal experto. "
