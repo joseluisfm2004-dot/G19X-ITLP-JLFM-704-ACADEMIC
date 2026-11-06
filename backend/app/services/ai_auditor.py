@@ -167,11 +167,18 @@ async def consultar_contrato_rag(pregunta: str, clausulas: list[dict]) -> tuple[
 
     PALABRAS_VACIAS = {"de", "la", "el", "que", "en", "y", "a", "los", "las", "del", "se", "por", "un", "una", "es", "con", "para"}
 
-    palabras_pregunta = set(pregunta.lower().replace("?", "").replace("¿", "").replace(",", "").split())
-    palabras_pregunta = {p for p in palabras_pregunta if p not in PALABRAS_VACIAS}
-    
+    pregunta_limpia = pregunta.lower().replace("?", "").replace("¿", "").replace(",", "")
+    pregunta_limpia = pregunta_limpia.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+    palabras_pregunta = set(pregunta_limpia.split())
+    palabras_pregunta = {p for p in palabras_pregunta if p not in PALABRAS_VACIAS and len(p) > 2}
+
     for c in clausulas:
-        palabras_texto = set((c["titulo"] + " " + c["texto"]).lower().split())
+        texto_clausula = (c["titulo"] + " " + c["texto"]).lower()
+        texto_clausula = texto_clausula.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        texto_clausula = texto_clausula.replace(".", " ").replace(",", " ").replace(":", " ")
+        
+        palabras_texto = set(texto_clausula.split())
         interseccion = palabras_pregunta.intersection(palabras_texto)
         c["score"] = len(interseccion)
 
