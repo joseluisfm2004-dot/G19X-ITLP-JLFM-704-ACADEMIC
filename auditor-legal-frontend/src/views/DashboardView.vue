@@ -198,7 +198,7 @@
               </div>
               <div>
                 <h3>Reporte de Auditoría Inteligente</h3>
-                <p>Evaluación de riesgos y cumplimiento normativo generada por GPT-4o</p>
+                <p>Evaluación de riesgos y cumplimiento normativo generada con IA o reglas de análisis</p>
               </div>
             </div>
             
@@ -283,7 +283,7 @@
               
               <div v-for="(msg, idx) in chatMensajes" :key="idx" :class="['chat-bubble-wrapper', msg.rol]">
                 <div class="chat-bubble">
-                  <span class="bubble-author">{{ msg.rol === 'user' ? 'Tú (Auditor)' : 'IA Azure GPT-4o' }}</span>
+                  <span class="bubble-author">{{ msg.rol === 'user' ? 'Tú (Auditor)' : 'Asistente IA' }}</span>
                   <p>{{ msg.texto }}</p>
                   
                   <div v-if="msg.citas && msg.citas.length > 0" class="chat-citations">
@@ -297,7 +297,7 @@
               
               <div v-if="enviandoMensaje" class="chat-bubble-wrapper ia">
                 <div class="chat-bubble">
-                  <span class="bubble-author">IA Azure GPT-4o</span>
+                  <span class="bubble-author">Asistente IA</span>
                   <div class="typing-indicator">
                     <span></span><span></span><span></span>
                   </div>
