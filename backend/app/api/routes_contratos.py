@@ -16,6 +16,7 @@ from app.services.extractor import extraer_texto_documento
 from app.services.parser import segmentar_texto_en_clausulas
 import uuid
 
+
 router = APIRouter()
 
 UPLOAD_DIR = "uploads/contratos"
@@ -291,3 +292,16 @@ async def chat_con_contrato(
         respuesta=respuesta_ia,
         clausulas_citadas=referencias
     )
+
+@router.delete("/{contrato_id}")
+async def eliminar_contrato(contrato_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(db_models.Contrato).where(db_models.Contrato.id == contrato_id))
+    contrato = result.scalars().first()
+    
+    if not contrato:
+        raise HTTPException(status_code=404, detail="Contrato no encontrado")
+        
+    await db.delete(contrato)
+    await db.commit()
+    
+    return {"mensaje": "Contrato eliminado correctamente"}

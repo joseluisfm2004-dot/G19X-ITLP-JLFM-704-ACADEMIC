@@ -181,6 +181,14 @@
                       style="background-color: #2b6cb0; border: none; cursor: pointer;">
                       PDF
                     </button>
+
+                    <button 
+                      @click.stop="eliminarContrato(c.id)" 
+                      class="action-btn delete-btn" 
+                      title="Eliminar contrato"
+                      style="background-color: #e53e3e; color: white; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; margin-left: 4px;">
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -548,6 +556,29 @@ const ejecutarBusqueda = () => {
   } else {
     contratoVisualizado.value = null;
     errorBusqueda.value = `No se encontró ningún contrato con el ID #${idABuscar} en tu base de datos.`;
+  }
+};
+
+const eliminarContrato = async (id) => {
+  if (!confirm('¿Estás seguro de que deseas eliminar este contrato?')) return;
+
+  try {
+    await axios.delete(`${import.meta.env.VITE_API_URL}/api/v1/contratos/${id}`, {
+  headers: {
+    'Authorization': `Bearer ${authStore.token}`
+  }
+});
+    
+    contratos.value = contratos.value.filter(contrato => contrato.id !== id);
+    
+    if (contratoVisualizado.value && contratoVisualizado.value.id === id) {
+      contratoVisualizado.value = null;
+    }
+    
+    alert('Contrato eliminado correctamente.');
+  } catch (error) {
+    console.error("Error al eliminar el contrato:", error);
+    alert('Hubo un error al intentar eliminar el contrato.');
   }
 };
 
