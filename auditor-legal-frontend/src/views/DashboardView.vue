@@ -363,6 +363,7 @@
                   <th>Email</th>
                   <th>Rol</th>
                   <th>Fecha de Creación</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,6 +377,15 @@
                     </span>
                   </td>
                   <td>{{ new Date(user.fecha_creacion).toLocaleDateString() }}</td>
+                  <td>
+                    <button 
+                      @click="eliminarUsuario(user.id)" 
+                      class="btn btn-sm btn-danger"
+                      title="Eliminar usuario"
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -821,6 +831,28 @@ const cargarUsuarios = async () => {
     console.error("Error al cargar usuarios:", err);
   }
 };
+
+const eliminarUsuario = async (id) => {
+  const confirmar = confirm("¿Estás seguro de que deseas eliminar este usuario?");
+  
+  if (!confirmar) return;
+
+  try {
+    const response = await axios.delete(`${import.meta.env.VITE_API_URL}/api/v1/usuarios/${id}`, {
+    headers: {
+      Authorization: `Bearer ${authStore.token}`
+      }
+  });
+    alert(response.data.mensaje);
+    await cargarUsuarios();
+
+  } catch (error) {
+    console.log(error);
+    const mensajeError = error.response?.data?.detail || "Ocurrió un error al intentar eliminar el usuario.";
+    alert(`Error: ${mensajeError}`);
+  }
+};
+
 
 const crearAuditor = async () => {
   mensajeUsuario.value = { texto: '', tipo: '' };

@@ -8,6 +8,7 @@ import app.models.models as db_models
 from app.schemas.usuarios import UsuarioCreate, UsuarioResponse
 from app.core.security import get_password_hash
 from app.core.deps import get_current_user
+from app.models.models import Usuario
 
 router = APIRouter()
 
@@ -99,3 +100,35 @@ async def get_usuario(
         )
 
     return usuario
+
+@router.delete("/{usuario_id}", status_code=status.HTTP_200_OK)
+async def eliminar_usuario(
+    usuario_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user) 
+):
+    if current_user.rol != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Acceso denegado. Solo los administradores pueden eliminar usuarios."
+        )
+    
+    if current_user.id == usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Operación no permitida: No puedes eliminar tu propia cuenta."
+        )
+
+    result = await db.execute(select(Usuario).where(Usuario.id == usuario_id))
+    usuario_a_borrar = result.scalar_one_or_none()
+
+    if not usuario_a_borrar:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Usuario no encontrado."
+        )
+
+    await db.delete(usuario_a_borrar)
+    await db.commit()
+
+    return {"mensaje": f"El usuario {usuario_a_borrar.email} ha sido eliminado correctamente."}    

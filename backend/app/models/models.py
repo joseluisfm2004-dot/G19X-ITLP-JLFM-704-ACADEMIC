@@ -18,7 +18,7 @@ class Usuario(Base):
     
     contratos = relationship("Contrato", back_populates="usuario")
     sesiones_chat = relationship("SesionChat", back_populates="usuario", cascade="all, delete-orphan")
-
+    contratos = relationship("Contrato", back_populates="usuario", cascade="all, delete-orphan")
 
 class Contrato(Base):
     __tablename__ = "contratos"
