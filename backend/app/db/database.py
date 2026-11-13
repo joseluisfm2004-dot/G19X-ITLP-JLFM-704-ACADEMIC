@@ -3,11 +3,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde el archivo .env (si existe)
 load_dotenv()
 
-# Cadena de conexión asíncrona para SQL Server local con Windows Authentication
-# Si tienes un usuario y contraseña específicos, deberás modificar esta URL en tu .env
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
     "mssql+aioodbc://localhost/auditoria_legal_db?driver=ODBC+Driver+17+for+SQL+Server&Trusted_Connection=yes"
